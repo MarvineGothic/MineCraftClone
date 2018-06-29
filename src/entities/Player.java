@@ -1,10 +1,13 @@
 package entities;
 
-import Models.TexturedModel;
-import RenderEngine.DisplayManager;
+import Textures.VoxelType;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.util.vector.Vector3f;
+import renderEngine.DisplayManager;
+
+import static toolbox.Constants.CHUNK_SIZE;
+import static toolbox.KeyHandler.keySinglePress;
 
 
 public class Player extends Entity {
@@ -14,7 +17,7 @@ public class Player extends Entity {
     private static final float JUMP_POWER = 30;
 
     private static final float TERRAIN_HEIGHT = 0;
-    private float terrainHeight = 0;
+    private float terrainHeight = CHUNK_SIZE;
 
     private float currentSpeed = 0;
     private float currentTurnSpeed = 0;
@@ -24,32 +27,29 @@ public class Player extends Entity {
 
     private boolean collision = true;
 
-    public Player(TexturedModel model, Vector3f position, float rotX, float rotY, float rotZ, float scale) {
-        super(model, position, rotX, rotY, rotZ, scale);
-    }
-
-    public Player(Vector3f position, float rotX, float rotY, float rotZ, float scale) {
-        super(position, rotX, rotY, rotZ, scale);
+    public Player(VoxelType voxelType, Vector3f position, float rotX, float rotY, float rotZ, float scale) {
+        super(voxelType, position, rotX, rotY, rotZ, scale);
     }
 
     public void move() {
         if (Mouse.isGrabbed()) {
-            if (Keyboard.isKeyDown(Keyboard.KEY_C))
+            if (keySinglePress(Keyboard.KEY_C))
                 collision = !collision;
+
 
             if (collision) {
                 checkInputsCollision();
-                super.increasedRotation(0, currentTurnSpeed * DisplayManager.getFrameTimeSeconds(), 0);
+                super.increaseRotation(0, currentTurnSpeed * DisplayManager.getFrameTimeSeconds(), 0);
                 float distance = currentSpeed * DisplayManager.getFrameTimeSeconds();
                 float dx = (float) (distance * Math.sin(Math.toRadians(super.getRotY())));
                 float dz = (float) (distance * Math.cos(Math.toRadians(super.getRotY())));
-                super.increasedPosition(dx, 0, dz);
+                super.increasePosition(dx, 0, dz);
                 //terrainHeight = terrain.getHeightOfTerrain(super.getPosition().x, super.getPosition().z);
                 upwardsSpeed += GRAVITY * DisplayManager.getFrameTimeSeconds();
-                super.increasedPosition(0, upwardsSpeed * DisplayManager.getFrameTimeSeconds(), 0);
-                if (super.getPosition().y < terrainHeight+2) {
+                super.increasePosition(0, upwardsSpeed * DisplayManager.getFrameTimeSeconds(), 0);
+                if (super.getPosition().y < terrainHeight + 2) {
                     upwardsSpeed = 0;
-                    super.getPosition().y = terrainHeight+2;
+                    super.getPosition().y = terrainHeight + 2;
                     isInAir = false;
                 }
             }

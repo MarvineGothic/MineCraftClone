@@ -1,49 +1,39 @@
 package entities;
 
-import Models.RawModel;
-import Models.SimpleCubeModel;
-import Models.TexturedModel;
-import RenderEngine.Loader;
-import Textures.ModelTexture;
+import Textures.VoxelType;
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
+
 
 public class Light extends Entity {
+    private Vector4f position4f;
     private Vector3f position;
     private Vector3f color;
-    private Vector3f attenuation = new Vector3f(1,0,0);
+    private Vector3f attenuation = new Vector3f(1, 0, 0);
 
-    public Light(Vector3f position, Vector3f color) {
-        super(position);
-        super.setScale(10);
-        setTexturedModel();
-        this.position = position;
+    public Light(VoxelType voxelType, Vector4f position4f, Vector3f color) {
+        super(voxelType, new Vector3f(position4f.x, position4f.y, position4f.z));
+        this.position4f = position4f;
+        this.position = new Vector3f(position4f.x, position4f.y, position4f.z);
         this.color = color;
-    }
-    public Light(Vector3f position, Vector3f color, Vector3f attenuation) {
-        super(position);
-        super.setScale(10);
-        setTexturedModel();
-        this.position = position;
-        this.color = color;
-        this.attenuation =attenuation;
-    }
-
-    public void setTexturedModel() {
-        RawModel sunModel = Loader.loadToVAO(SimpleCubeModel.getVertices(), SimpleCubeModel.getIndices(),SimpleCubeModel.getTextures(), SimpleCubeModel.getNormals());
-        ModelTexture treeBark = new ModelTexture(Loader.loadTexture("TreeBark"));
-        super.setModel(new TexturedModel(sunModel, treeBark));
     }
 
     public Vector3f getAttenuation() {
         return attenuation;
     }
 
+    @Override
     public Vector3f getPosition() {
         return position;
     }
 
-    public void setPosition(Vector3f position) {
+    public Vector4f getPosition4f() {
+        return position4f;
+    }
+
+    public Entity setPosition(Vector3f position) {
         this.position = position;
+        return this;
     }
 
     public Vector3f getColor() {
