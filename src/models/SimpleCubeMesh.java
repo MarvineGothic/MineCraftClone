@@ -3,47 +3,46 @@ package models;
 
 import java.util.Arrays;
 
-public class SimpleCubeObject extends Mesh {
+public class SimpleCubeMesh extends Mesh {
     private static float[] vertices = { // 72
 
             // Top 48 - 60
-            1.0f, 1.0f, 1.0f,
-            1.0f, 1.0f, 0.0f,
-            0.0f, 1.0f, 0.0f,
-            0.0f, 1.0f, 1.0f,
+            0.5f, 0.5f, 0.5f,
+            0.5f, 0.5f, -0.5f,
+            -0.5f, 0.5f, -0.5f,
+            -0.5f, 0.5f, 0.5f,
 
             // Bottom 0 - 12
-            1.0f, 0.0f, 1.0f,
-            0.0f, 0.0f, 1.0f,
-            0.0f, 0.0f, 0.0f,
-            1.0f, 0.0f, 0.0f,
+            0.5f, -0.5f, 0.5f,
+            -0.5f, -0.5f, 0.5f,
+            -0.5f, -0.5f, -0.5f,
+            0.5f, -0.5f, -0.5f,
 
             // Front 36 - 48
-            1.0f, 1.0f, 1.0f,
-            0.0f, 1.0f, 1.0f,
-            0.0f, 0.0f, 1.0f,
-            1.0f, 0.0f, 1.0f,
+            0.5f, 0.5f, 0.5f,
+            -0.5f, 0.5f, 0.5f,
+            -0.5f, -0.5f, 0.5f,
+            0.5f, -0.5f, 0.5f,
 
             // Back 60 - 72
-            1.0f, 1.0f, 0.0f,
-            1.0f, 0.0f, 0.0f,
-            0.0f, 0.0f, 0.0f,
-            0.0f, 1.0f, 0.0f,
+            0.5f, 0.5f, -0.5f,
+            0.5f, -0.5f, -0.5f,
+            -0.5f, -0.5f, -0.5f,
+            -0.5f, 0.5f, -0.5f,
 
             // Left 12 - 24
-            0.0f, 1.0f, 1.0f,
-            0.0f, 1.0f, 0.0f,
-            0.0f, 0.0f, 0.0f,
-            0.0f, 0.0f, 1.0f,
+            -0.5f, 0.5f, 0.5f,
+            -0.5f, 0.5f, -0.5f,
+            -0.5f, -0.5f, -0.5f,
+            -0.5f, -0.5f, 0.5f,
 
             // Right 24 - 36
-            1.0f, 1.0f, 1.0f,
-            1.0f, 0.0f, 1.0f,
-            1.0f, 0.0f, 0.0f,
-            1.0f, 1.0f, 0.0f,
+            0.5f, 0.5f, 0.5f,
+            0.5f, -0.5f, 0.5f,
+            0.5f, -0.5f, -0.5f,
+            0.5f, 0.5f, -0.5f,
 
     };
-
     private static float[] textures = {
             // top
             1, 1,
@@ -110,7 +109,6 @@ public class SimpleCubeObject extends Mesh {
             0.99f, 0.6566667f,
             0.99f, 0.34333333f,
     };
-
     private static int[] indices = {
             // Top
             0, 1, 2,
@@ -132,7 +130,6 @@ public class SimpleCubeObject extends Mesh {
             22, 23, 20
 
     };
-
     private static float[] normals = {
             // Top face
             0.0f, 1.0f, 0.0f,
@@ -171,12 +168,13 @@ public class SimpleCubeObject extends Mesh {
             1.0f, 0.0f, 0.0f,
 
     };
+    private float boundingRadius = 0.5f;
 
-    public SimpleCubeObject() {
+    public SimpleCubeMesh() {
         super(vertices, indices, textures, normals);
     }
 
-    public SimpleCubeObject(float[] textures) {
+    public SimpleCubeMesh(float[] textures) {
         super(vertices, indices, textures, normals);
     }
 
@@ -219,7 +217,7 @@ public class SimpleCubeObject extends Mesh {
     }
 
     public static void main(String[] args) {
-        System.out.println(Arrays.toString(SimpleCubeObject.setTextures(3, 3, 1, 0)));
+        System.out.println(Arrays.toString(SimpleCubeMesh.setTextures(3, 3, 1, 0)));
 
     }
 }

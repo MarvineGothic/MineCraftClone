@@ -2,13 +2,14 @@ package renderEngine;
 
 
 import entities.*;
+import graphics.shaders.StaticShader;
 import models.TexturedModel;
 import org.lwjgl.opengl.GL11;
-import graphics.shaders.StaticShader;
 
 import java.util.*;
 
-import static toolbox.CameraBoxSelectionDetector.selectGameItem;
+import static graphics.CameraBoxSelectionDetector.draw_bbox;
+import static graphics.CameraBoxSelectionDetector.selectGameItem;
 
 public class MasterRenderer {
 
@@ -19,8 +20,9 @@ public class MasterRenderer {
 
     private static StaticShader shader;
     private Camera camera;
+    private Map<TexturedModel, List<Entity>> entities;
     private Map<TexturedModel, List<Entity>> meshes;
-    private List<Entity> visibleVoxels;
+    private Voxel selectedItem;
 
     public MasterRenderer(Camera camera) {
         this.camera = camera;
@@ -39,8 +41,8 @@ public class MasterRenderer {
     private void init() {
         enableCulling();
         shader = new StaticShader(camera.getProjectionMatrix());
-        this.meshes = new HashMap<>();
-        this.visibleVoxels = new ArrayList<>();
+        this.meshes = Collections.synchronizedMap(new HashMap<>());
+        this.entities = Collections.synchronizedMap(new HashMap<>());
     }
 
     /**
@@ -57,27 +59,43 @@ public class MasterRenderer {
         shader.start();
         shader.loadLight(sun);
         shader.loadViewMatrix(camera);
-        selectGameItem(visibleVoxels, camera);
-        EntityRenderer.render(meshes);
+        if (camera.isNeedUpdate())
+            selectedItem = selectGameItem(camera);
+        EntityRenderer.renderInstanced(meshes);
+
+        //EntityRenderer.render(entities);
+        draw_bbox(selectedItem);
+
         shader.stop();
         clearEntities();
     }
 
     public void clearEntities() {
-        visibleVoxels.clear();
         meshes.clear();
+        entities.clear();
     }
 
     public void processChunk(Chunk chunk) {
-        meshes.putAll(chunk.getChunkMeshes());
-        visibleVoxels.addAll(new ArrayList<>(chunk.getVisibleVoxels()));
+        // TODO: 01.07.2018 better update
+            meshes.putAll(chunk.getChunkMeshes());
+
     }
 
     public void processEntity(Entity entity) {
         TexturedModel entityModel = entity.getTexturedModel();
-        meshes.computeIfAbsent(entityModel, k -> new ArrayList<>());
-        meshes.get(entityModel).add(entity);
-        if (!(entity instanceof Player) && !(entity instanceof Light))
-            visibleVoxels.add(entity);
+        entities.computeIfAbsent(entityModel, k -> new ArrayList<>());
+        entities.get(entityModel).add(entity);
+    }
+
+    public Voxel getSelectedItem() {
+        return selectedItem;
+    }
+
+    public Map<TexturedModel, List<Entity>> getMeshes() {
+        return meshes;
+    }
+
+    public Map<TexturedModel, List<Entity>> getEntities() {
+        return entities;
     }
 }

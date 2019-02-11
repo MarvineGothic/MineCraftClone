@@ -1,9 +1,13 @@
 package entities;
 
 import Textures.VoxelType;
-import models.Model;
+import models.MeshModel;
 import models.TexturedModel;
+import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
+import toolbox.Maths;
+
+import java.util.Objects;
 
 
 public class Entity {
@@ -12,6 +16,7 @@ public class Entity {
     private Vector3f position;
     private float rotX, rotY, rotZ;
     private float scale = 1;
+    private Matrix4f transformationMatrix;
 
     private boolean isSelected = false;
 
@@ -25,30 +30,23 @@ public class Entity {
 
     public Entity(VoxelType voxelType, Vector3f position) {
         setModel(voxelType).setPosition(position);
+        updateTransformationMatrix();
     }
-
-
-    public Entity setModel(VoxelType voxelType) {
-        this.voxelType = voxelType;
-        this.texturedModel = voxelType.getTexturedModel();
-        return this;
-    }
-
 
     @Override
     public boolean equals(Object o) {
-        Entity entity = (Entity) o;
         if (this == o) return true;
-        if (o == null || entity.getPosition() == null || getClass() != o.getClass()) return false;
-
-        return this.position.x + 0.5 > entity.position.x && this.position.x - 0.5 < entity.position.x &&
-                this.position.z + 0.5 > entity.position.z && this.position.z - 0.5 < entity.position.z &&
-                this.position.y + 0.5 > entity.position.y && this.position.y - 0.5 < entity.position.y;
+        if (o == null || getClass() != o.getClass()) return false;
+        Entity entity = (Entity) o;
+        return Float.compare(entity.position.x, position.x) == 0 &&
+                Float.compare(entity.position.y, position.y) == 0 &&
+                Float.compare(entity.position.z, position.z) == 0;
     }
 
     @Override
     public int hashCode() {
-        return position != null ? position.hashCode() : 0;
+
+        return Objects.hash(position.x, position.y, position.z);
     }
 
     public void increasePosition(float dx, float dy, float dz) {
@@ -71,10 +69,15 @@ public class Entity {
         this.texturedModel = texturedModel;
     }
 
-    public Model getModel() {
-        return getTexturedModel().getModel();
+    public MeshModel getModel() {
+        return getTexturedModel().getMeshModel();
     }
 
+    public Entity setModel(VoxelType voxelType) {
+        this.voxelType = voxelType;
+        this.texturedModel = voxelType.getTexturedModel();
+        return this;
+    }
 
     public Vector3f getPosition() {
         return position;
@@ -119,5 +122,13 @@ public class Entity {
 
     public void setSelected(boolean selected) {
         isSelected = selected;
+    }
+
+    public Matrix4f getTransformationMatrix() {
+        return transformationMatrix;
+    }
+
+    public void updateTransformationMatrix() {
+        this.transformationMatrix = Maths.createTransformationMatrix(this.position, this.rotX, this.rotY, this.rotZ, this.scale);
     }
 }

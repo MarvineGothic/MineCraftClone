@@ -1,20 +1,20 @@
 package models;
 
 
-public class Model {
+public class MeshModel {
     private int vaoID;
     private Mesh mesh;
     private int size; //size
     private int usage;
 
-    public Model(int vaoID, Mesh mesh, int size, int usage) {
+    public MeshModel(int vaoID, Mesh mesh, int size, int usage) {
         this.vaoID = vaoID;
         this.mesh = mesh;
         this.size = size;
         this.usage = usage;
     }
 
-    public Model(int vaoID, int size, int usage) {
+    public MeshModel(int vaoID, int size, int usage) {
         this.vaoID = vaoID;
         this.size = size;
         this.usage = usage;

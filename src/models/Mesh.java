@@ -1,6 +1,5 @@
 package models;
 
-
 import java.util.List;
 
 public class Mesh {
@@ -8,6 +7,8 @@ public class Mesh {
     private int[] indices;
     private float[] textures;
     private float[] normals;
+
+    private float boundingRadius;
 
     public Mesh(float[] vertices, int[] indices, float[] textures, float[] normals) {
         this.vertices = vertices;
@@ -80,5 +81,13 @@ public class Mesh {
 
     public float[] getNormals() {
         return normals;
+    }
+
+    public float getBoundingRadius() {
+        return boundingRadius;
+    }
+
+    public void setBoundingRadius(float boundingRadius) {
+        this.boundingRadius = boundingRadius;
     }
 }

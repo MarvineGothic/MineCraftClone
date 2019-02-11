@@ -4,63 +4,89 @@
 out vec4 out_Color;
 
 in vec2 fragTexCoord;
-in vec3 fragPos;
-in vec3 fragNormal;
+in vec3 mvVertexPos;
+in vec3 mvVertexNormal;
+in vec3 toCameraVector;
 
 in vec3 color;
 
-uniform mat4 transformationMatrix;
+
+uniform mat4 modelMatrix;
 uniform sampler2D texSampler;
-uniform vec3 lightColor;
-uniform vec4 lightPosition;
-uniform float useFakeLighting;
 uniform float outSelected;
 
+struct PointLight{
+    vec3 color;
+    vec4 position;
+    vec3 attenuation;
+};
+
+struct Material{
+    /*vec4 ambient;
+    vec4 diffuse;
+    vec4 specular;
+    int hasTexture;*/
+    float reflectance;
+    float shineDamper;
+    float useFakeLighting;
+};
+
+uniform PointLight pointLight;
+uniform Material material;
+
+vec4 calcPointLight(PointLight light, vec3 position, vec3 normal, vec4 textureColor){
+    vec4 diffuseColor = vec4(0, 0, 0, 0);
+    vec4 specColor = vec4(0, 0, 0, 0);
+
+    vec3 toLightVector;
+
+   if(material.useFakeLighting > 0.5)
+      normal = vec3(0.0,1.0,0.0);
+
+   if (light.position.w == 0.0)
+       // directional light
+       toLightVector = normalize(light.position.xyz);
+   else
+       // point light
+       toLightVector = normalize(light.position.xyz - position);
+
+
+    // Diffuse light
+    float diffuseFactor = max(dot(normal, toLightVector), 0.0);
+
+    // Specular Light
+    vec3 lightDirection = -toLightVector;
+    vec3 reflectedLightDirection = normalize(reflect(lightDirection, normal));
+    float specularFactor = max( dot(toCameraVector, reflectedLightDirection), 0.0);
+    specularFactor = pow(specularFactor, material.shineDamper) * material.reflectance;
+
+    // attenuation
+    float distance = length(toLightVector);
+    float attenuationFactor = light.attenuation.x + light.attenuation.y * distance + light.attenuation.z * distance * distance;
+
+    // ambient light
+    vec4 ambient = textureColor * vec4(0.3f, 0.3f, 0.3f, 1.0f);
+    return (diffuseFactor + specularFactor) * textureColor * vec4(light.color, 1.0) / attenuationFactor + ambient;
+}
 
 void main(void){
 
-    vec4 fragPosition = transformationMatrix * vec4(fragPos, 1.0);
-
-    vec3 surfaceToLight;
-    float attenuation = 1.0;
-
-    if (lightPosition.w == 0.0){
-        // directional light
-        surfaceToLight = normalize(lightPosition.xyz);
-        attenuation = 1.0;
-    }
-    else{
-        // point light
-        surfaceToLight = normalize(lightPosition.xyz - fragPosition.xyz);
-        // attenuation...
-    }
-
-    vec3 actualNormal = fragNormal;
-    if(useFakeLighting > 0.5)
-        actualNormal = vec3(0.0,1.0,0.0);
-
-    vec3 surfaceNormal = (transformationMatrix * vec4(actualNormal, 0.0)).xyz;
-    vec3 normal = normalize(surfaceNormal);
-
-    vec4 textureColor = texture(texSampler, fragTexCoord);
-    float brightness = max(dot(normal, surfaceToLight), 0.0);
-    vec3 diffuse = brightness * textureColor.rgb * lightColor;
-
-    float lightAmbientCoefficient = 0.5f;
-    vec3 ambient = lightAmbientCoefficient * textureColor.rgb * lightColor;
-
-    //if(textureColor.a < 0.5) discard;
+    vec4 textureColor;
 
     if(fragTexCoord !=0){
-        out_Color = vec4(ambient + diffuse , textureColor.a);
+        textureColor = texture(texSampler, fragTexCoord);
+    }else {
+        textureColor = vec4(color, 1.0);
     }
-    else
-        out_Color = vec4(color, 1.0);
 
-    if ( outSelected > 0 ) {
+    vec4 light = calcPointLight(pointLight, mvVertexPos, mvVertexNormal, textureColor);
+
+    if(textureColor.a < 0.5) discard;
+
+    out_Color = light;
+
+    // selected object
+    /*if ( outSelected > 0 ) {
         out_Color = vec4(out_Color.x, out_Color.y, 1, 1);
-    }
-
-
-
+    }*/
 }

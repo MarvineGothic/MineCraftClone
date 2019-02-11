@@ -88,7 +88,10 @@ public class Maths {
     }
 
     public static org.joml.Matrix4f toJOMLM4f(Matrix4f matrix4f) {
-        return new org.joml.Matrix4f(matrix4f.m00, matrix4f.m01, matrix4f.m02, matrix4f.m03, matrix4f.m10, matrix4f.m11, matrix4f.m12, matrix4f.m13, matrix4f.m20, matrix4f.m21, matrix4f.m22, matrix4f.m23, matrix4f.m30, matrix4f.m31, matrix4f.m32, matrix4f.m33);
+        return new org.joml.Matrix4f(matrix4f.m00, matrix4f.m01, matrix4f.m02, matrix4f.m03,
+                matrix4f.m10, matrix4f.m11, matrix4f.m12, matrix4f.m13,
+                matrix4f.m20, matrix4f.m21, matrix4f.m22, matrix4f.m23,
+                matrix4f.m30, matrix4f.m31, matrix4f.m32, matrix4f.m33);
     }
 
     public static float[] listToArray(List<Float> list) {

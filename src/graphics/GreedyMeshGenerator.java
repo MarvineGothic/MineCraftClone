@@ -1,13 +1,13 @@
 package graphics;
 
-import Textures.TextureObject;
+import Textures.Material;
 import Textures.VoxelType;
 import entities.Entity;
 import entities.Chunk;
 import entities.Voxel;
 import models.Mesh;
-import models.Model;
-import models.SimpleCubeObject;
+import models.MeshModel;
+import models.SimpleCubeMesh;
 import models.TexturedModel;
 import org.lwjgl.util.vector.Vector3f;
 import renderEngine.Loader;
@@ -23,7 +23,7 @@ import static org.lwjgl.opengl.GL15.GL_STATIC_DRAW;
 import static toolbox.Constants.CHUNK_SIZE;
 import static toolbox.Side.*;
 
-public class MeshEntityGenerator {
+public class GreedyMeshGenerator {
 
     private static VoxelType[] mask = new VoxelType[(int) Math.pow(CHUNK_SIZE, 3)];
     private static boolean[] done = new boolean[mask.length];
@@ -77,23 +77,25 @@ public class MeshEntityGenerator {
                 done_ = false;
 
                 checkSides();
-                    addVertices(face, x, y, z);
+                    addVertices(face, x-0.5f, y-0.5f, z-0.5f);
 
             }
         }
+
         for (Map.Entry<VoxelType, List<List<Object>>> entry : meshTypes.entrySet()) {
             VoxelType textureType = entry.getKey();
             List<List<Object>> coords = entry.getValue();
             createMeshEntity(textureType, coords.get(0), coords.get(1), coords.get(2), coords.get(3), seg);
         }
+       // seg.setNeedUpdateVisibility(true);
         seg.setNeedUpdateMesh(false);
         return chunkMeshes;
     }
 
     private static void createMeshEntity(VoxelType textureType, List<Object> vertices, List<Object> indices, List<Object> textures, List<Object> normals, Chunk seg) {
-        TextureObject currentTexture = textureType.getTexturedModel().getTextureObject();
+        Material currentTexture = textureType.getTexturedModel().getMaterial();
         Mesh newMesh = new Mesh(vertices, indices, textures, normals);
-        Model model = Loader.loadToVAO(newMesh, GL_STATIC_DRAW);
+        MeshModel model = Loader.loadToVAO(newMesh, GL_STATIC_DRAW);
         TexturedModel meshModel = new TexturedModel(model, currentTexture);
         MeshEntity meshEntity = new MeshEntity(textureType, seg.getChunkPos());
 
@@ -150,7 +152,7 @@ public class MeshEntityGenerator {
         }
     }
 
-    private static void addVertices(int side, int x, int y, int z) {
+    private static void addVertices(int side, float x, float y, float z) {
         List<Object> vertices = new ArrayList<>();
         List<Object> textures = new ArrayList<>();
         List<Object> normals = new ArrayList<>();
@@ -175,8 +177,8 @@ public class MeshEntityGenerator {
         }
 
 
-        Mesh mesh = type.getTexturedModel().getModel().getMesh();
-        float[][] meshTextures = Mesh.splitSides(SimpleCubeObject.get_textures(), 8);
+        Mesh mesh = type.getTexturedModel().getMeshModel().getMesh();
+        float[][] meshTextures = Mesh.splitSides(SimpleCubeMesh.get_textures(), 8);
         float[][] meshNorm = Mesh.splitSides(mesh.getNormals(), 12);
         float[] vert = new float[12];
         float[] tex = new float[12];

@@ -1,7 +1,7 @@
 package renderEngine;
 
 import models.Mesh;
-import models.Model;
+import models.MeshModel;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.*;
 import org.newdawn.slick.opengl.Texture;
@@ -15,13 +15,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static graphics.shaders.StaticShader.*;
+import static org.lwjgl.opengl.GL15.*;
+import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
 
 public class Loader {
     private static List<Integer> vaos = new ArrayList<>();
     private static List<Integer> vbos = new ArrayList<>();
     private static List<Integer> textures = new ArrayList<>();
 
-    private static int createVAO() {
+    public static int createVAO() {
         int vaoID = GL30.glGenVertexArrays();
         vaos.add(vaoID);
         GL30.glBindVertexArray(vaoID);
@@ -46,7 +48,7 @@ public class Loader {
         return textureID;
     }
 
-    public static Model loadToVAO(Mesh mesh, int usage) {
+    public static MeshModel loadToVAO(Mesh mesh, int usage) {
         int vaoID = createVAO();
         float[] vertices = mesh.getVertices();
         int[] indices = mesh.getIndices();
@@ -60,37 +62,37 @@ public class Loader {
             bindDataBuffer(NORMALS, 3, normals, usage);
         bindIndicesBuffer(indices, usage);
         unbindVAO();
-        return new Model(vaoID, mesh, indices.length, usage);
+        return new MeshModel(vaoID, mesh, indices.length, usage);
     }
 
-    private static void bindDataBuffer(int attributeNumber, int coordinateSize, float[] data, int usage) {
-        int vboID = GL15.glGenBuffers();
+    public static void bindDataBuffer(int attributeNumber, int coordinateSize, float[] data, int usage) {
+        int vboID = glGenBuffers();
         vbos.add(vboID);
         FloatBuffer buffer = storeDataInFloatBuffer(data);
 
-        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vboID);
-        GL15.glBufferData(GL15.GL_ARRAY_BUFFER, buffer, usage);
-        GL20.glVertexAttribPointer(attributeNumber, coordinateSize, GL11.GL_FLOAT, false, 0, 0);
-        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, vboID);
+        glBufferData(GL_ARRAY_BUFFER, buffer, usage);
+        glVertexAttribPointer(attributeNumber, coordinateSize, GL11.GL_FLOAT, false, 0, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
-    private static void bindIndicesBuffer(int[] indices, int usage) {
-        int vboID = GL15.glGenBuffers();
+    public static void bindIndicesBuffer(int[] indices, int usage) {
+        int vboID = glGenBuffers();
         vbos.add(vboID);
         IntBuffer buffer = storeDataInIntBuffer(indices);
 
-        GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, vboID);
-        GL15.glBufferData(GL15.GL_ELEMENT_ARRAY_BUFFER, buffer, usage);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboID);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, buffer, usage);
     }
 
-    private static IntBuffer storeDataInIntBuffer(int[] data) {
+    public static IntBuffer storeDataInIntBuffer(int[] data) {
         IntBuffer buffer = BufferUtils.createIntBuffer(data.length);
         buffer.put(data);
         buffer.flip();
         return buffer;
     }
 
-    private static FloatBuffer storeDataInFloatBuffer(float[] data) {
+    public static FloatBuffer storeDataInFloatBuffer(float[] data) {
         FloatBuffer buffer = BufferUtils.createFloatBuffer(data.length);
         buffer.put(data);
         buffer.flip();
@@ -105,7 +107,7 @@ public class Loader {
         for (int vao : vaos)
             GL30.glDeleteVertexArrays(vao);
         for (int vbo : vbos)
-            GL15.glDeleteBuffers(vbo);
+            glDeleteBuffers(vbo);
         for (int texture : textures)
             GL11.glDeleteTextures(texture);
     }
@@ -122,18 +124,18 @@ public class Loader {
         return vaoID;
     }
 
-    public static Model loadToVAO(float[] positions, int dimensions, int usage) {
+    public static MeshModel loadToVAO(float[] positions, int dimensions, int usage) {
         int vaoID = createVAO();
         bindDataBuffer(0, dimensions, positions, usage);
         unbindVAO();
-        return new Model(vaoID, positions.length / dimensions, usage);
+        return new MeshModel(vaoID, positions.length / dimensions, usage);
     }
 
-    public static Model loadToVAO(float[] positions, int[] indices, int usage) {
+    public static MeshModel loadToVAO(float[] positions, int[] indices, int usage) {
         int vaoID = createVAO();
         bindDataBuffer(0, 3, positions, usage);
         bindIndicesBuffer(indices, usage);
         unbindVAO();
-        return new Model(vaoID, indices.length, usage);
+        return new MeshModel(vaoID, indices.length, usage);
     }
 }

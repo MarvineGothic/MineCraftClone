@@ -1,25 +1,25 @@
 package models;
 
-import Textures.TextureObject;
+import Textures.Material;
 
 public class TexturedModel {
-    private Model model;
-    private TextureObject textureObject;
+    private MeshModel meshModel;
+    private Material material;
 
-    public TexturedModel(Model model, TextureObject textureObject) {
-        this.model = model;
-        this.textureObject = textureObject;
+    public TexturedModel(MeshModel meshModel, Material material) {
+        this.meshModel = meshModel;
+        this.material = material;
     }
 
-    public Model getModel() {
-        return model;
+    public MeshModel getMeshModel() {
+        return meshModel;
     }
 
-    public TextureObject getTextureObject() {
-        return textureObject;
+    public Material getMaterial() {
+        return material;
     }
 
-    public void setTextureObject(TextureObject textureObject) {
-        this.textureObject = textureObject;
+    public void setMaterial(Material material) {
+        this.material = material;
     }
 }

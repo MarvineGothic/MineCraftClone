@@ -1,15 +1,16 @@
 package entities;
 
 import MineKraft.MainGameLoop;
-import graphics.MeshEntityGenerator;
+import graphics.GreedyMeshGenerator;
 import models.TexturedModel;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.util.vector.Vector3f;
+import toolbox.Vector3;
 
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static Textures.VoxelType.DIRT;
 import static Textures.VoxelType.GRASS;
@@ -21,15 +22,15 @@ public class Chunk {
     public static final int SHIFT_1 = CHUNK_SIZE;
     public static final int SHIFT_2 = CHUNK_SIZE * CHUNK_SIZE;
     private Voxel[] voxels = new Voxel[(int) Math.pow(CHUNK_SIZE, 3)];
-    private List<Voxel> visibleVoxels;
-    private Vector3f chunkPos;
+    private Set<Voxel> visibleVoxels;
+    private Vector3 chunkPos;
     private boolean needUpdateMesh = true;
-    private boolean needUpdateVisibility = true;
+    private boolean insideFrustum=true;
     private Map<TexturedModel, List<Entity>> chunkMeshes;
 
-    public Chunk(Vector3f chunkPos) {
+    public Chunk(Vector3 chunkPos) {
         this.chunkPos = chunkPos;
-        visibleVoxels = Collections.synchronizedList(new ArrayList<>());
+        visibleVoxels = new HashSet<>();
     }
 
     public static int coordToIndex(int x, int y, int z) {
@@ -42,9 +43,9 @@ public class Chunk {
 
     private void updateVoxelVisibility(int x, int y, int z) {
         Voxel currentVoxel = getVoxel(x, y, z);
-        //ChunkPosition currChunkPos = new ChunkPosition(chunkPos.x, chunkPos.y, chunkPos.z);
+        //Vector3 currChunkPos = new Vector3(chunkPos.x, chunkPos.y, chunkPos.z);
 
-        Voxel surroundingVoxels[] = new Voxel[SIDES];
+        Voxel[] surroundingVoxels = new Voxel[SIDES];
 
         surroundingVoxels[TOP] = getVoxel(x, y + 1, z); // top
         surroundingVoxels[BOT] = getVoxel(x, y - 1, z); // bot
@@ -55,16 +56,16 @@ public class Chunk {
 
 
         Chunk[] surroundingChunks = new Chunk[SIDES];
-        Map<ChunkPosition, Chunk> chunksMap = MainGameLoop.getChunksMap();
-        surroundingChunks[TOP] = chunksMap.get(new ChunkPosition(chunkPos.x, chunkPos.y + CHUNK_SIZE, chunkPos.z));
-        surroundingChunks[BOT] = chunksMap.get(new ChunkPosition(chunkPos.x, chunkPos.y - CHUNK_SIZE, chunkPos.z));
-        surroundingChunks[FRONT] = chunksMap.get(new ChunkPosition(chunkPos.x, chunkPos.y, chunkPos.z + CHUNK_SIZE));
-        surroundingChunks[BACK] = chunksMap.get(new ChunkPosition(chunkPos.x, chunkPos.y, chunkPos.z - CHUNK_SIZE));
-        surroundingChunks[LEFT] = chunksMap.get(new ChunkPosition(chunkPos.x - CHUNK_SIZE, chunkPos.y, chunkPos.z));
-        surroundingChunks[RIGHT] = chunksMap.get(new ChunkPosition(chunkPos.x + CHUNK_SIZE, chunkPos.y, chunkPos.z));
+        Map<Vector3, Chunk> chunksMap = MainGameLoop.getChunksMap();
+        surroundingChunks[TOP] = chunksMap.get(new Vector3(chunkPos.getX(), chunkPos.getY() + CHUNK_SIZE, chunkPos.getZ()));
+        surroundingChunks[BOT] = chunksMap.get(new Vector3(chunkPos.getX(), chunkPos.getY() - CHUNK_SIZE, chunkPos.getZ()));
+        surroundingChunks[FRONT] = chunksMap.get(new Vector3(chunkPos.getX(), chunkPos.getY(), chunkPos.getZ() + CHUNK_SIZE));
+        surroundingChunks[BACK] = chunksMap.get(new Vector3(chunkPos.getX(), chunkPos.getY(), chunkPos.getZ() - CHUNK_SIZE));
+        surroundingChunks[LEFT] = chunksMap.get(new Vector3(chunkPos.getX() - CHUNK_SIZE, chunkPos.getY(), chunkPos.getZ()));
+        surroundingChunks[RIGHT] = chunksMap.get(new Vector3(chunkPos.getX() + CHUNK_SIZE, chunkPos.getY(), chunkPos.getZ()));
 
 
-        // TODO: 29.06.2018  gives improvement from 20 to 40 FPS rendering world 5 * 16*16
+        // TODO: 29.06.2018  gives improvement from 8 to 15 FPS rendering world 5 * 16*16
         if (y == CHUNK_SIZE - 1 && surroundingChunks[TOP] != null)
             surroundingVoxels[TOP] = surroundingChunks[TOP].getVoxel(x, 0, z);
         if (y == 0 && surroundingChunks[BOT] != null)
@@ -103,9 +104,10 @@ public class Chunk {
 
         // if voxel was updated then recreate Mesh:
         this.setNeedUpdateMesh(true);
+        MainGameLoop.getCamera().setNeedUpdate(true);
     }
 
-    private void updateVoxel(Voxel voxel) {
+    private synchronized void updateVoxel(Voxel voxel) {
         if (voxel != null) {
             voxel.updateVisibility();
 
@@ -120,9 +122,11 @@ public class Chunk {
             }
 
             // update visible Voxels list:
-            if (!voxel.isVisible()) visibleVoxels.remove(voxel);
-            else if (voxel.isVisible() && !visibleVoxels.contains(voxel))
+            if (!voxel.isVisible()) {
+                visibleVoxels.remove(voxel);
+            } else if (voxel.isVisible()) {
                 visibleVoxels.add(voxel);
+            }
         }
     }
 
@@ -146,8 +150,9 @@ public class Chunk {
     public void setVoxel(int x, int y, int z, Voxel voxel) {
         if (indexOutOfBounds(x) || indexOutOfBounds(y) || indexOutOfBounds(z)) return;
         // when delete voxel, remove from visible list:
-        if (voxel == null)
+        if (voxel == null) {
             visibleVoxels.remove(voxels[coordToIndex(x, y, z)]);
+        }
         voxels[coordToIndex(x, y, z)] = voxel;
         updateVoxelVisibility(x, y, z);
     }
@@ -156,12 +161,11 @@ public class Chunk {
         setVoxel((int) p.x, (int) p.y, (int) p.z, voxel);
     }
 
-    public void removeVisibleVoxels() {
-        for (Voxel voxel : visibleVoxels)
-            if (voxel.isSelected() && keySinglePress(Keyboard.KEY_R)) {
+    public void removeSelectedVoxel(Voxel voxel) {
+            if (keySinglePress(Keyboard.KEY_R)) {
                 //if (voxel.isSelected() && Keyboard.isKeyDown(Keyboard.KEY_R)) {
                 this.setVoxel(voxel.getPositionInChunk(), null);    // also updates visibility
-                return;
+
             }
     }
 
@@ -169,11 +173,11 @@ public class Chunk {
         return (i < 0 || i > CHUNK_SIZE - 1);
     }
 
-    public Vector3f getChunkPos() {
+    public Vector3 getChunkPos() {
         return chunkPos;
     }
 
-    public List<Voxel> getVisibleVoxels() {
+    public Set<Voxel> getVisibleVoxels() {
         return visibleVoxels;
     }
 
@@ -191,17 +195,21 @@ public class Chunk {
     }
 
     public void setChunkMeshes() {
-        // TODO: 29.06.2018 gives improvement from 5 to 20 FPS rendering world 5 * 16*16
+        // TODO: 29.06.2018 gives improvement from 3 to 8 FPS rendering world 5 * 16*16
         if (this.isNeedUpdateMesh())
-            this.chunkMeshes = MeshEntityGenerator.processSegment(this);
+            this.chunkMeshes = GreedyMeshGenerator.processSegment(this);
+
     }
 
-    public boolean isNeedUpdateVisibility() {
-        return needUpdateVisibility;
+    public boolean isInsideFrustum() {
+        return insideFrustum;
     }
 
-    public void setNeedUpdateVisibility(boolean needUpdateVisibility) {
-        this.needUpdateVisibility = needUpdateVisibility;
+    public void setInsideFrustum(boolean insideFrustum) {
+        this.insideFrustum = insideFrustum;
     }
 
+    public Voxel[] getVoxels() {
+        return voxels;
+    }
 }

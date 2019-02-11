@@ -3,11 +3,14 @@ package entities;
 import Textures.VoxelType;
 import org.lwjgl.util.vector.Vector3f;
 import toolbox.Side;
+import toolbox.Vector3;
 
 import static toolbox.Side.SIDES;
 
 public class Voxel extends Entity {
 
+    private boolean insideFrustum;
+    private boolean disableFrustumCulling = false;
     private boolean visible;
     private boolean[] sidesVisibility;
     private Vector3f positionInChunk;
@@ -18,7 +21,8 @@ public class Voxel extends Entity {
         super(voxelType, position);
         this.parentChunk = parent;
         visible = true;
-        positionInChunk = Vector3f.sub(position, parent.getChunkPos(), null);
+        Vector3 parentPos = parent.getChunkPos();
+        positionInChunk = Vector3f.sub(position, new Vector3f(parentPos.getX(), parentPos.getY(), parentPos.getZ()), null);
         this.sidesVisibility = new boolean[SIDES];
         for (int i = 0; i < sidesVisibility.length; i++)
             sidesVisibility[i] = true;
@@ -29,7 +33,7 @@ public class Voxel extends Entity {
     }
 
     public void setVisibility(int side, boolean visible) {
-        /*if (sidesVisibility[side] != visible) */this.getParentChunk().setNeedUpdateMesh(true);
+        if (sidesVisibility[side] != visible) this.getParentChunk().setNeedUpdateMesh(true);
         sidesVisibility[side] = visible;
     }
 
@@ -39,6 +43,11 @@ public class Voxel extends Entity {
 
     public boolean isVisible() {
         return visible;
+    }
+
+    public void setVisible(boolean visible) {
+        //if (this.visible != visible) this.getParentChunk().setNeedUpdateMesh(true);
+        this.visible = visible;
     }
 
     public boolean isVisible(int side) {
@@ -63,5 +72,23 @@ public class Voxel extends Entity {
 
     public void setChanged(boolean changed) {
         isChanged = changed;
+    }
+
+    public boolean isInsideFrustum() {
+        return insideFrustum;
+    }
+
+    public void setInsideFrustum(boolean insideFrustum) {
+        /*if (this.insideFrustum != insideFrustum) this.getParentChunk().setNeedUpdateMesh(true);*/
+        this.insideFrustum = insideFrustum;
+        //setVisible(insideFrustum);
+    }
+
+    public boolean isDisableFrustumCulling() {
+        return disableFrustumCulling;
+    }
+
+    public void setDisableFrustumCulling(boolean disableFrustumCulling) {
+        this.disableFrustumCulling = disableFrustumCulling;
     }
 }

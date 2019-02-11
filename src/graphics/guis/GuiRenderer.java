@@ -1,6 +1,6 @@
 package graphics.guis;
 
-import models.Model;
+import models.MeshModel;
 
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
@@ -17,7 +17,7 @@ import static org.lwjgl.opengl.GL15.GL_STATIC_DRAW;
 import static renderEngine.Loader.loadToVAO;
 
 public class GuiRenderer {
-    private final Model quad;
+    private final MeshModel quad;
     private GuiShader shader;
 
     public GuiRenderer(Loader loader) {

@@ -9,29 +9,29 @@ import renderEngine.Loader;
 import java.io.FileInputStream;
 import java.nio.ByteBuffer;
 
-public class TextureObject {
+public class Material {
     private int width;
     private int height;
     private ByteBuffer buffer;
     private int textureID;
-    private float shineDamper = 1;
-    private float reflectivity = 0;
+    private float shineDamper = 10f;
+    private float reflectance = 0f;
 
     private boolean transparent = false;
     private boolean fakeLighting = false;
 
     private int numberOfRows = 1;
 
-    public TextureObject(int textureID) {
+    public Material(int textureID) {
         this.textureID = textureID;
     }
 
-    public TextureObject(String fileName) {
+    public Material(String fileName) {
         this.textureID = Loader.loadTexture(fileName);
     }
 
     /**
-     * TextureObject from file to ByteBuffer
+     * Material from file to ByteBuffer
      *
      * @param fileName
      * @return
@@ -70,7 +70,7 @@ public class TextureObject {
         return transparent;
     }
 
-    public TextureObject setTransparency(boolean hasTransparency) {
+    public Material setTransparency(boolean hasTransparency) {
         this.transparent = hasTransparency;
         return this;
     }
@@ -79,7 +79,7 @@ public class TextureObject {
         return fakeLighting;
     }
 
-    public TextureObject setFakeLighting(boolean useFakeLighting) {
+    public Material setFakeLighting(boolean useFakeLighting) {
         this.fakeLighting = useFakeLighting;
         return this;
     }
@@ -92,16 +92,18 @@ public class TextureObject {
         return shineDamper;
     }
 
-    public void setShineDamper(float shineDamper) {
+    public Material setShineDamper(float shineDamper) {
         this.shineDamper = shineDamper;
+        return this;
     }
 
-    public float getReflectivity() {
-        return reflectivity;
+    public float getReflectance() {
+        return reflectance;
     }
 
-    public void setReflectivity(float reflectivity) {
-        this.reflectivity = reflectivity;
+    public Material setReflectance(float reflectance) {
+        this.reflectance = reflectance;
+        return this;
     }
 
     public int getNumberOfRows() {

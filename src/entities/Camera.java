@@ -12,41 +12,46 @@ public class Camera {
 
     private Matrix4f viewMatrix;
     private Matrix4f projectionMatrix;
-    private Matrix4f invertedProjectionMatrix; // for ray casting
+    // private Matrix4f invertedProjectionMatrix; // for ray casting
     private float distanceFromPlayer = 50;
     private float angleAroundPlayer = 0;
 
-    private Vector3f position = new Vector3f();
-    private float pitch = 10;
+    private Vector3f position = new Vector3f(0, 0, 0);
+    private float pitch = 0;
     private float yaw = 0;
-    private float up = 0, down = 0;
+    private boolean needUpdate = true;
 
 
     private Player player;
 
     public Camera(Player player) {
         this.player = player;
-        projectionMatrix= Maths.createProjectionMatrix(FOV, NEAR_PLANE, FAR_PLANE);
-        Matrix4f.invert(projectionMatrix, invertedProjectionMatrix);
+        projectionMatrix = Maths.createProjectionMatrix(FOV, NEAR_PLANE, FAR_PLANE);
+        //Matrix4f.invert(projectionMatrix, invertedProjectionMatrix);
     }
 
-    public void move() {
+    public void update() {
+        updateViewMatrix();
         if (Mouse.isGrabbed()) {
             if (player.isCollision()) {
-                calculateZoom();
+                /*calculateZoom();
                 calculatePitch();
                 calculateAngleAroundPlayer();
                 float horizontalDistance = calculateHorizontalDistance();
                 float verticalDistance = calculateVerticalDistance();
                 calculateCameraPosition(horizontalDistance, verticalDistance);
-                this.yaw = 180 - (player.getRotY() + angleAroundPlayer);
-            } else {
+                this.yaw = 180 - (player.getRotY() + angleAroundPlayer);*/
+            } else if (!player.isCollision()) {
                 this.checkInputsNoCollision2();
             }
-        }
+        } else this.needUpdate = false;
     }
 
-    public void checkInputsNoCollision() {
+    private void updateViewMatrix() {
+        viewMatrix = Maths.createViewMatrix(this);
+    }
+
+    /*public void checkInputsNoCollision() {
         float moveAt;
         float speed = 0.3f;
         float sideSpeed;
@@ -67,9 +72,15 @@ public class Camera {
         float dz = (float) (moveAt * Math.cos(Math.toRadians(yaw)) * Math.cos(Math.toRadians(pitch)) - sideSpeed * Math.sin(Math.toRadians(yaw)));
 
         increasePosition(dx, dy, dz);
-    }
+    }*/
 
     public void checkInputsNoCollision2() {
+        float oldPitch = pitch;
+        float oldYaw = yaw;
+        float oldX = position.x;
+        float oldY = position.y;
+        float oldZ = position.z;
+
         float moveAt;
         float speed = 0.3f;
         float sideSpeed;
@@ -93,8 +104,10 @@ public class Camera {
         float dy = vertical;
         float dz = (float) (moveAt * Math.cos(Math.toRadians(yaw)) * Math.cos(Math.toRadians(pitch)) - sideSpeed * Math.sin(Math.toRadians(yaw)));
 
+
         increasePosition(dx, dy, dz);
-        //vertical = 0;
+        // check if camera changed position (optimization):
+        needUpdate = oldX != position.x || oldY != position.y || oldZ != position.z || oldPitch != pitch || oldYaw != yaw;
     }
 
     public void increasePosition(float dx, float dy, float dz) {
@@ -103,6 +116,13 @@ public class Camera {
         position.z += dz;
     }
 
+    /**
+     * Experimental (not effective) method to locate "look at" voxels
+     *
+     * @param height
+     * @param maxDistance
+     * @return
+     */
     public Vector3f findLookAtVoxelCoordinates(float height, float maxDistance) {
         float y = height;
         float distance = (float) Math.abs((position.y - y) / Math.sin(Math.toRadians(pitch)));
@@ -166,23 +186,31 @@ public class Camera {
         return viewMatrix;
     }
 
-    public void setViewMatrix(Matrix4f viewMatrix) {
-        this.viewMatrix = viewMatrix;
-    }
 
     public Matrix4f getProjectionMatrix() {
         return projectionMatrix;
     }
 
-    public void setProjectionMatrix(Matrix4f projectionMatrix) {
-        this.projectionMatrix = projectionMatrix;
-    }
 
-    public Matrix4f getInvertedProjectionMatrix() {
+    /*public Matrix4f getInvertedProjectionMatrix() {
         return invertedProjectionMatrix;
     }
 
     public void setInvertedProjectionMatrix(Matrix4f invertedProjectionMatrix) {
         this.invertedProjectionMatrix = invertedProjectionMatrix;
+    }
+*/
+
+    /**
+     * Tells the program to update if camera changed position (optimization)
+     *
+     * @return
+     */
+    public boolean isNeedUpdate() {
+        return needUpdate;
+    }
+
+    public void setNeedUpdate(boolean needUpdate) {
+        this.needUpdate = needUpdate;
     }
 }

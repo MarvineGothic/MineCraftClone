@@ -99,7 +99,7 @@ public abstract class ShaderProgram {
         glBindAttribLocation(programID, attribute, variableName);
     }
 
-    void loadFloat(int location, float value) {
+    static void loadFloat(int location, float value) {
         glUniform1f(location, value);
     }
 

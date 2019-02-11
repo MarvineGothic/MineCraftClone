@@ -25,13 +25,13 @@ public class Player extends Entity {
     private boolean isInAir = false;
     private boolean isJump = true;
 
-    private boolean collision = true;
+    private boolean collision = false;
 
     public Player(VoxelType voxelType, Vector3f position, float rotX, float rotY, float rotZ, float scale) {
         super(voxelType, position, rotX, rotY, rotZ, scale);
     }
 
-    public void move() {
+    public void update() {
         if (Mouse.isGrabbed()) {
             if (keySinglePress(Keyboard.KEY_C))
                 collision = !collision;
@@ -44,7 +44,7 @@ public class Player extends Entity {
                 float dx = (float) (distance * Math.sin(Math.toRadians(super.getRotY())));
                 float dz = (float) (distance * Math.cos(Math.toRadians(super.getRotY())));
                 super.increasePosition(dx, 0, dz);
-                //terrainHeight = terrain.getHeightOfTerrain(super.getPosition().x, super.getPosition().z);
+                //terrainHeight = terrain.getHeightOfTerrain(super.getLightPosition().x, super.getLightPosition().z);
                 upwardsSpeed += GRAVITY * DisplayManager.getFrameTimeSeconds();
                 super.increasePosition(0, upwardsSpeed * DisplayManager.getFrameTimeSeconds(), 0);
                 if (super.getPosition().y < terrainHeight + 2) {

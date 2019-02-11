@@ -2,6 +2,7 @@ package MineKraft;
 
 import Textures.VoxelType;
 import entities.*;
+import graphics.FrustumCullingFilter;
 import graphics.fontMeshCreator.FontType;
 import graphics.fontMeshCreator.GUIText;
 import graphics.fontRendering.TextMaster;
@@ -12,6 +13,8 @@ import org.lwjgl.util.vector.Vector4f;
 import renderEngine.DisplayManager;
 import renderEngine.Loader;
 import renderEngine.MasterRenderer;
+import toolbox.Timer;
+import toolbox.Vector3;
 
 import java.io.File;
 import java.util.*;
@@ -26,31 +29,54 @@ import static toolbox.Constants.WORLD_SIZE;
 public class MainGameLoop {
 
     private static MasterRenderer masterRenderer;
+    // Entities
     private static Player player;
     private static Camera camera;
     private static Light sun;
-    private static List<Chunk> chunks = Collections.synchronizedList(new ArrayList<>());
-    private static Map<ChunkPosition, Chunk> chunksMap = Collections.synchronizedMap(new HashMap<>());
-    private static List<ChunkPosition> usedPos = Collections.synchronizedList(new ArrayList<>());
-    private static List<Thread> threads = new ArrayList<>();
+    private static Voxel selectedVoxel = null;
+
+    // Collections
+    private static Map<Vector3, Chunk> chunksMap = Collections.synchronizedMap(new HashMap<>());
+    private static List<Vector3> usedPos = Collections.synchronizedList(new ArrayList<>());
+    private static List<Thread> threads = Collections.synchronizedList(new ArrayList<>());
     private static Vector3f camPos = new Vector3f();
-    private static boolean close = false;
+
+    // HUD
     private static FontType font;
-    private static Voxel sE = null;
     private static GUIText[] text;
 
-    private static Voxel selectedVoxel;
+    // Performance meter
+    private static Timer timer = new Timer();
+    private static Timer timer2 = new Timer();
+    private static float max = 0;
+    private static float update = 0;
+    private static float hud = 0;
+    private static float render = 0;
+    private static float clean = 0;
+    private static float updStart = 0;
+    private static float frustum = 0;
+    private static float process = 0;
 
+    private static boolean close = false;
 
     public static void main(String[] args) {
         init();
 
         while (!Display.isCloseRequested()) {
+            timer.init();
             update();
+            update += timer.getElapsedTime();
             createHUD();
+            hud += timer.getElapsedTime();
             render();
+            render += timer.getElapsedTime();
             clean();
+            clean += timer.getElapsedTime();
         }
+        if (render > clean && render > hud && render > update) System.out.println("render");
+        if (update > clean && update > hud && update > render) System.out.println("update");
+        if (hud > clean && hud > render && hud > update) System.out.println("hud");
+        if (clean > render && clean > hud && clean > update) System.out.println("clean");
         close();
     }
 
@@ -61,55 +87,75 @@ public class MainGameLoop {
 
         player = new Player(PLAYER, new Vector3f(0, 20, 0), 0, 0, 0, 1);
         camera = new Camera(player);
-        sun = (Light) new Light(SUN, new Vector4f(100, 100, 100, 0), new Vector3f(1, 1, 1)).setScale(10);
+        sun = (Light) new Light(SUN, new Vector4f(1000, 1000, 1000, 1), new Vector3f(1, 1, 1)).setScale(10);
 
         masterRenderer = new MasterRenderer(camera);
+
         createThreads(DIRT);
     }
 
     private static void update() {
+        timer2.init(); // performance measurement
         Display.setTitle("fps:" + getFPS());
-        player.move();
-        camera.move();
+
+        player.update();
+        camera.update();
+
         camPos = camera.getPosition();
+
+        FrustumCullingFilter.update(camera);
 
         masterRenderer.clearEntities();
         masterRenderer.processEntity(player);
         masterRenderer.processEntity(sun);
 
+        updStart += timer2.getElapsedTime();
 
         for (int i = 0; i < usedPos.size(); i++) {
-            //for (Map.Entry<Vector3f, Chunk> entry : chunksMap.entrySet()) {
-            ChunkPosition currentChunkPos = usedPos.get(i);
+            timer2.init();
+            Vector3 currentChunkPos = usedPos.get(i);
             Chunk currentChunk = chunksMap.get(currentChunkPos);
 
-            currentChunk.removeVisibleVoxels();
+            // frustum culling bottleneck. Needs improvement
+            if (camera.isNeedUpdate())
+                FrustumCullingFilter.filter(currentChunk);
 
-            int distX = (int) (camPos.x - currentChunkPos.getX());
-            int distZ = (int) (camPos.z - currentChunkPos.getZ());
 
-            if (distX < 0)
-                distX = -distX;
+            if (currentChunk.isInsideFrustum()) {
+                int distX = (int) (camPos.x - currentChunkPos.getX());
+                int distZ = (int) (camPos.z - currentChunkPos.getZ());
 
-            if (distZ < 0)
-                distZ = -distZ;
+                if (distX < 0)
+                    distX = -distX;
 
-            if ((distX <= WORLD_SIZE) && (distZ <= WORLD_SIZE))
+                if (distZ < 0)
+                    distZ = -distZ;
 
-            masterRenderer.processChunk(currentChunk);
+                frustum += timer2.getElapsedTime();
+                if ((distX <= WORLD_SIZE) && (distZ <= WORLD_SIZE))
+                    masterRenderer.processChunk(currentChunk);
 
-            for (int j = 0; j < currentChunk.getVisibleVoxels().size(); j++) {
-                Entity e = currentChunk.getVisibleVoxels().get(j);
-                // remove selected
-                if (e.isSelected()) {
-                    sE = (Voxel) e;
-                }
-                // masterRenderer.processEntity(e);
+                /*Set<Voxel> chunkVisibleVoxels = currentChunk.getVisibleVoxels();
+                for (int j = 0; j < chunkVisibleVoxels.size(); j++)
+                    masterRenderer.processEntity(new ArrayList<>(chunkVisibleVoxels).get(j));*/
+                process += timer2.getElapsedTime();
+                //System.out.println(masterRenderer.getEntities().size());
+
             }
         }
+
     }
 
     private static void render() {
+        selectedVoxel = masterRenderer.getSelectedItem();
+        // TODO: 01.07.2018 increased FPS from 12 to 60 on world 10 * 16*16 (can run 20 * 16*16 FPS 12-30)
+        // remove selected voxel from chunk:
+        Chunk selectedChunk;
+        if (selectedVoxel != null) {
+            selectedChunk = chunksMap.get(selectedVoxel.getParentChunk().getChunkPos());
+            selectedChunk.removeSelectedVoxel(selectedVoxel);
+        }
+
         masterRenderer.render(sun);
         TextMaster.render();
     }
@@ -122,17 +168,17 @@ public class MainGameLoop {
         boolean atTop = false;
         VoxelType type = null;
         Chunk currentSegm = null;
-        Vector3f segmPos = null;
+        Vector3 segmPos = null;
 
-        if (sE != null) {
-            currentSegm = sE.getParentChunk();
+        if (selectedVoxel != null) {
+            currentSegm = selectedVoxel.getParentChunk();
             segmPos = currentSegm != null ? currentSegm.getChunkPos() : null;
-            if (sE.getPosition() != null && segmPos != null) {
-                voxelPos = sE.getPositionInChunk();
+            if (selectedVoxel.getPosition() != null && segmPos != null) {
+                voxelPos = selectedVoxel.getPositionInChunk();
                 voxelIndexInChunk = coordToIndex((int) voxelPos.x, (int) voxelPos.y, (int) voxelPos.z);
             }
-            atTop = sE.isAtTop();
-            type = sE.getVoxelType();
+            atTop = selectedVoxel.isAtTop();
+            type = selectedVoxel.getVoxelType();
         }
 
 
@@ -142,7 +188,18 @@ public class MainGameLoop {
                 .concat(String.format("     LookAt Voxel: %s;", voxelPos))
                 .concat(String.format("     Pos in chunkArray: %s;", voxelIndexInChunk))
                 .concat(String.format("     At Top: %s;", atTop))
-                .concat(String.format("     Type: %s", type));
+                .concat(String.format("     Type: %s;", type)
+                        .concat(String.format("Performance:;    Update: %s;", update))
+                        .concat(String.format("     Hud: %s;", hud))
+                        .concat(String.format("     render: %s;", render))
+                        .concat(String.format("     Clean: %s;", clean))
+                        .concat(String.format("     updStart: %s;", updStart))
+                        .concat(String.format("     frustum: %s;", frustum))
+                        .concat(String.format("     process: %s;", process))
+                        .concat(String.format("HUD: %s;", hud))
+                        .concat(String.format("Render: %s;", render))
+                        .concat(String.format("Clean: %s;", clean))
+                );
 
         String[] hud = HUD.split(";");
         text = new GUIText[hud.length];
@@ -153,7 +210,8 @@ public class MainGameLoop {
 
     private static void clean() {
         DisplayManager.updateDisplay();
-        for (GUIText aText : text) aText.remove();
+        // clean HUD:
+        GUIText.clear(text);
     }
 
     private static void close() {
@@ -170,10 +228,10 @@ public class MainGameLoop {
         float chunkY = wY * CHUNK_SIZE;
         float chunkZ = wZ * CHUNK_SIZE;
 
-        ChunkPosition chunkPosition = new ChunkPosition(chunkX, chunkY, chunkZ);
-        if (!chunksMap.containsKey(chunkPosition)) {
+        Vector3 vector3 = new Vector3(chunkX, chunkY, chunkZ);
+        if (!chunksMap.containsKey(vector3)) {
 
-            Chunk chunk = new Chunk(new Vector3f(chunkPosition.getX(), chunkPosition.getY(), chunkPosition.getZ()));
+            Chunk chunk = new Chunk(new Vector3(vector3.getX(), vector3.getY(), vector3.getZ()));
 
             for (int x = 0; x < CHUNK_SIZE; x++)
                 for (int y = 0; y < CHUNK_SIZE; y++)
@@ -182,9 +240,9 @@ public class MainGameLoop {
                         currentVoxelType = voxelType;
                         chunk.setVoxel(x, y, z, new Voxel(currentVoxelType, voxelPositions, chunk));
                     }
-            chunk.setNeedUpdateVisibility(false);
-            usedPos.add(chunkPosition);
-            chunksMap.put(chunkPosition, chunk);
+
+            usedPos.add(vector3);
+            chunksMap.put(vector3, chunk);
         }
     }
 
@@ -193,14 +251,8 @@ public class MainGameLoop {
             while (!close) {
                 for (int x = (int) (camPos.x - WORLD_SIZE) / CHUNK_SIZE; x < (int) (camPos.x + WORLD_SIZE) / CHUNK_SIZE; x++)
                     for (int z = (int) (camPos.z - WORLD_SIZE) / CHUNK_SIZE; z < (int) (camPos.z + WORLD_SIZE) / CHUNK_SIZE; z++)
-                        addEntitiesToList(voxelType, x,0, z);
-                /*addEntitiesToList(voxelType, 0, 0, 0);
-                addEntitiesToList(voxelType, 0, 1, 0);
-                addEntitiesToList(voxelType, 0, -1, 0);
-                addEntitiesToList(voxelType, -1, 0, 0);
-                addEntitiesToList(voxelType, 1, 0, 0);
-                addEntitiesToList(voxelType, 0, 0, 1);
-                addEntitiesToList(voxelType, 0, 0, -1);*/
+                        addEntitiesToList(voxelType, x, 0, z);
+                //addEntitiesToList(voxelType, 0, 0, 0);
             }
         });
         thread1.start();
@@ -225,7 +277,15 @@ public class MainGameLoop {
         return font;
     }
 
-    public static Map<ChunkPosition, Chunk> getChunksMap() {
+    public static Map<Vector3, Chunk> getChunksMap() {
         return chunksMap;
+    }
+
+    public static MasterRenderer getMasterRenderer() {
+        return masterRenderer;
+    }
+
+    public static List<Vector3> getUsedPos() {
+        return usedPos;
     }
 }

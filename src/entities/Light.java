@@ -6,15 +6,13 @@ import org.lwjgl.util.vector.Vector4f;
 
 
 public class Light extends Entity {
-    private Vector4f position4f;
-    private Vector3f position;
+    private Vector4f lightEntityPosition;
     private Vector3f color;
     private Vector3f attenuation = new Vector3f(1, 0, 0);
 
-    public Light(VoxelType voxelType, Vector4f position4f, Vector3f color) {
-        super(voxelType, new Vector3f(position4f.x, position4f.y, position4f.z));
-        this.position4f = position4f;
-        this.position = new Vector3f(position4f.x, position4f.y, position4f.z);
+    public Light(VoxelType voxelType, Vector4f lightEntityPosition, Vector3f color) {
+        super(voxelType, new Vector3f(lightEntityPosition.x, lightEntityPosition.y, lightEntityPosition.z));
+        this.lightEntityPosition = lightEntityPosition;
         this.color = color;
     }
 
@@ -22,21 +20,16 @@ public class Light extends Entity {
         return attenuation;
     }
 
-    @Override
-    public Vector3f getPosition() {
-        return position;
-    }
-
-    public Vector4f getPosition4f() {
-        return position4f;
-    }
-
-    public Entity setPosition(Vector3f position) {
-        this.position = position;
+    public Light setAttenuation(Vector3f attenuation) {
+        this.attenuation = attenuation;
         return this;
     }
 
-    public Vector3f getColor() {
+    public Vector4f getLightPosition() {
+        return lightEntityPosition;
+    }
+
+       public Vector3f getColor() {
         return color;
     }
 
